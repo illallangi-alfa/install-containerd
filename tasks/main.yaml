@@ -1,0 +1,17 @@
+---
+- name: "Fail if OS/Architecture is not supported"
+  fail:
+    msg: "Installing containerd on {{ (ansible_os_family | lower) + '_' + (ansible_architecture | lower) }} is unsupported."
+  when:
+    - "(install_containerd_packages | default({}))[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] is not defined"
+    - "containerd is defined"
+  tags:
+    - "containerd"
+- name: "Install containerd"
+  package:
+    pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] }}"
+    state: "present"
+  when:
+    - "containerd is defined"
+  tags:
+    - "containerd"
