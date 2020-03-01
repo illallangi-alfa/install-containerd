@@ -1,17 +1,43 @@
 ---
-- name: "Fail if OS/Architecture is not supported"
-  fail:
-    msg: "Installing containerd on {{ (ansible_os_family | lower) + '_' + (ansible_architecture | lower) }} is unsupported."
+- name: "Install containerd (redhat)"
+  dnf:
+    pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] | json_query('[].name')}}"
+    state: "present"
+    disable_excludes: "all"
+  register: installed_containerd_packages
   when:
-    - "(install_containerd_packages | default({}))[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] is not defined"
-    - "containerd is defined"
+    - "(ansible_os_family | lower) == 'redhat'"
   tags:
     - "containerd"
-- name: "Install containerd"
-  package:
-    pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] }}"
+- name: "Pin containerd (redhat)"
+  vars:
+    jmespath: "[{% for var in (lookup('varnames', '^dnf_exclude_.+').split(',')) %}{{ var }}{{ ',' if not loop.last else '' }}{% endfor %}][]"
+  lineinfile:
     state: "present"
+    path: "/etc/dnf/dnf.conf"
+    line: "excludepkgs={{ vars | to_json | from_json | json_query(jmespath) | unique | sort | join(',') }}"
   when:
-    - "containerd is defined"
+    - "(ansible_os_family | lower) == 'redhat'"
+  tags:
+    - "containerd"
+- name: "Install containerd (debian)"
+  apt:
+    pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] | json_query('[].name')}}"
+    update_cache: yes
+    install_recommends: no
+  register: installed_containerd_packages
+  when:
+    - "(ansible_os_family | lower) == 'debian'"
+  tags:
+    - "containerd"
+- name: "Pin containerd (debian)"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/sbin:/usr/sbin"
+  shell: >-
+    apt-mark hold {{ item }}
+  with_items: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] | json_query('[?hold==`true`].name')}}"
+  when:
+    - "(ansible_os_family | lower) == 'debian'"
+    - "installed_containerd_packages.changed"
   tags:
     - "containerd"
