@@ -1,12 +1,7 @@
 ---
 install_containerd_packages:
-  redhat: &redhat
-    - name: "containerd.io-1.2.10"
-      hold: true
-  raspbian: &raspbian
+  debian: &debian
     - name: "containerd.io=1.2.10-3"
       hold: true
-  debian_armv7l: *raspbian
-  redhat_x86_64: *redhat
-dnf_exclude_containerd:
-  - "containerd.io"
+  debian_armv7l: *debian
+  debian_x86_64: *debian

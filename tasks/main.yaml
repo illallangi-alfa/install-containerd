@@ -1,25 +1,4 @@
 ---
-- name: "Install containerd (redhat)"
-  dnf:
-    pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] | json_query('[].name')}}"
-    state: "present"
-    disable_excludes: "all"
-  register: installed_containerd_packages
-  when:
-    - "(ansible_os_family | lower) == 'redhat'"
-  tags:
-    - "containerd"
-- name: "Pin containerd (redhat)"
-  vars:
-    jmespath: "[{% for var in (lookup('varnames', '^dnf_exclude_.+').split(',')) %}{{ var }}{{ ',' if not loop.last else '' }}{% endfor %}][]"
-  lineinfile:
-    state: "present"
-    path: "/etc/dnf/dnf.conf"
-    line: "excludepkgs={{ vars | to_json | from_json | json_query(jmespath) | unique | sort | join(',') }}"
-  when:
-    - "(ansible_os_family | lower) == 'redhat'"
-  tags:
-    - "containerd"
 - name: "Install containerd (debian)"
   apt:
     pkg: "{{ install_containerd_packages[(ansible_os_family | lower) + '_' + (ansible_architecture | lower)] | json_query('[].name')}}"
